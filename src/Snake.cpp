@@ -67,8 +67,8 @@ public:
 	int gameLoop()
 	{
 		_bodypos.reserve(100);
-		std::uniform_int_distribution<int> disx(1, HEIGHT - 1);
-		std::uniform_int_distribution<int> disy(1, WIDTH - 1);
+		std::uniform_int_distribution<int> disx(1, HEIGHT - 2);
+		std::uniform_int_distribution<int> disy(1, WIDTH - 2);
 		_foodposx = disx(rd);
 		_foodposy = disy(rd);
 		while (!died)
@@ -87,8 +87,8 @@ public:
 	}
 	void printSnake()
 	{
-		std::uniform_int_distribution<int> disx(1, HEIGHT - 1);
-		std::uniform_int_distribution<int> disy(1, WIDTH - 1);
+		std::uniform_int_distribution<int> disx(1, HEIGHT - 2);
+		std::uniform_int_distribution<int> disy(1, WIDTH - 2);
 		_frame[_headposx][_headposy] = 'O';
 		_frame[_foodposx][_foodposy] = (char)3;
 		short headposx = _headposx, headposy = _headposy;
