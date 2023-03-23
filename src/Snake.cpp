@@ -9,7 +9,6 @@
 const int HEIGHT = 40;
 const int WIDTH = 70;
 
-
 class Game
 {
 private:
