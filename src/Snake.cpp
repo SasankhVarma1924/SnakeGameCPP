@@ -1,166 +1,142 @@
 #include<iostream>
-#include<chrono>
+#include<deque>
 #include<windows.h>
+#include<ctime>
 #include<random>
-#include<string>
-#include<conio.h>
-#include<vector>
+#include <vector>
+#include <conio.h>
 
-const int HEIGHT = 40;
-const int WIDTH = 70;
+class Position
+{
+public:
+	int x, y;
+	Position() 
+	{
+		this->x = 0;
+		this->y = 0;
+	}
+	Position(int x, int y)
+	{
+		this->x = x;
+		this->y = y;
+	}
+	bool operator == (const Position& pos)
+	{
+		if (this->x == pos.x && this->y == pos.y)
+			return true;
+		return false;
+	}
+};
 
 class Game
 {
 private:
-	std::vector<std::string> _frame;
-	std::vector<std::string> _lastframe;
-	std::vector<short> _bodypos;
-	bool died = false,eat = false;
-	short _headposx = 4, _headposy = 10;
-	short _foodposx = 0, _foodposy = 0;
-	char _key=0;
-	int _tails = 0, _score = 0;
+	int HEIGHT = 30; 
+	int WIDTH = 40;
+	int score = 0;
+	char _key = 0;
+	bool isSnakeAlive = true;
 	std::random_device rd;
-public:
-	Game()
-	{
-		std::vector<std::string> frame(HEIGHT);
-		std::string fir, las, mid;
-		for (int i = 0; i < WIDTH; i++)
-		{
-			if (i == 0 || i == WIDTH - 1)
-			{
-				mid += (char)186;
-			}
-			else
-			{
-				mid += ' ';
-			}
-			fir += (char)205;
-		}
-		las = fir;
-		fir[0] = (char)201;
-		fir[WIDTH - 1] = (char)187;
-		las[0] = (char)200;
-		las[WIDTH - 1] = (char)188;
+	std::vector<std::string> frame;
+	std::vector<std::vector<bool>> validPosition;
+	std::deque<Position> snakeBody;
+	Position food;
 
-		for (int i = 0; i < HEIGHT; i++)
-		{
-			if (i == 0)
-			{
-				frame[i] = fir;
-			}
-			else if (i == HEIGHT - 1)
-			{
-				frame[i] = las;
-			}
-			else
-			{
-				frame[i] = mid;
-			}
-		}
-		_frame = frame;
-		_lastframe = frame;
-		frame = { "" };
-	}
-	int gameLoop()
+	void printFrame()
 	{
-		_bodypos.reserve(100);
-		std::uniform_int_distribution<int> disx(1, HEIGHT - 2);
-		std::uniform_int_distribution<int> disy(1, WIDTH - 2);
-		_foodposx = disx(rd);
-		_foodposy = disy(rd);
-		while (!died)
+		for (std::string s : frame)
 		{
-			if (_headposx == 0 || _headposx == HEIGHT - 1 || _headposy == 0 || _headposy == WIDTH - 1)
-			{
-				died = true;
-			}
-			printSnake();
-			printFrame();
-			updateInput();
-			Sleep(100);
-			system("cls");
+			std::cout << "\t\t\t\t" << s << "\n";
 		}
-		return _score;
 	}
+
 	void printSnake()
 	{
-		std::uniform_int_distribution<int> disx(1, HEIGHT - 2);
-		std::uniform_int_distribution<int> disy(1, WIDTH - 2);
-		_frame[_headposx][_headposy] = 'O';
-		_frame[_foodposx][_foodposy] = (char)3;
-		short headposx = _headposx, headposy = _headposy;
-		int size = _bodypos.size()-1;
-		for (int i = 0; i < _tails; i++)
+		getBigger();
+		for (auto it = snakeBody.begin(); it != snakeBody.end(); it++)
 		{
-			if (_bodypos[size] == 0)
-			{
-				headposx++;
-			}
-			else if (_bodypos[size] == 1)
-			{
-				headposy--;
-			}
-			else if (_bodypos[size] == 2)
-			{
-				headposx--;
-			}
-			else if (_bodypos[size] == 3)
-			{
-				headposy++;
-			}
-			if (_headposx == headposx && _headposy == headposy)
-			{
-				died = true;
-			}
-			up:
-			if (_foodposx == headposx && _foodposy == headposy)
-			{
-				_foodposx = disx(rd);
-				_foodposy = disy(rd);
-				goto up;
-			}
-			_frame[headposx][headposy] = 'O';
-			size--;
+			Position pos = *it;
+			frame[pos.x][pos.y] = (char)254;
 		}
+	}
 
-		if (_headposx == _foodposx && _headposy == _foodposy)
-		{
-			_foodposx = disx(rd);
-			_foodposy = disy(rd);
-			_score++;
-			_tails++;
-		}
-		if (size - _tails >= 5)
-		{
-			_bodypos.erase(_bodypos.begin());
-		}
-	}
-	void updateInput()
+	void printFood()
 	{
-		input();
-		if (_key == 'd')
+		frame[food.x][food.y] = (char)249;
+	}
+
+	void generateSnake()
+	{
+		snakeBody.push_back(generatePosition());
+	}
+
+	void generateFood()
+	{
+		food = generatePosition();
+		while (!validPosition[food.x][food.y])
+			food = generatePosition();
+	}
+
+	Position generatePosition()
+	{
+		std::uniform_int_distribution<int> distX(1, HEIGHT - 2);
+		std::uniform_int_distribution<int> distY(1, WIDTH - 2);
+		return { distX(rd), distY(rd) };
+	}
+
+	bool isAlive(Position& pos)
+	{
+		if (pos.x <= 0 || pos.y <= 0 || pos.x >= HEIGHT - 1 || pos.y >= WIDTH - 1)
 		{
-			_bodypos.push_back(1);
-			_headposy++;
+			isSnakeAlive = false;
+			return false;
 		}
-		else if (_key == 'a')
+		if (!validPosition[pos.x][pos.y])
 		{
-			_bodypos.push_back(3);
-			_headposy--;
+			isSnakeAlive = false;
+			return false;
 		}
-		else if (_key == 's')
+		return true;
+	}
+
+	bool isFoodEaten()
+	{
+		Position head = snakeBody.back();
+		if (head == food)
 		{
-			_bodypos.push_back(2);
-			_headposx++;
+			score++;
+			return true;
 		}
-		else if (_key == 'w')
+		return false;
+	}
+
+	void getBigger()
+	{
+		if (isFoodEaten())
 		{
-			_bodypos.push_back(0);
-			_headposx--;
+			generateFood();
+			Position head = snakeBody.back();
+			Position newHead = head;
+			switch (_key)
+			{
+				case 'w':
+					newHead.x -= 1;
+					break;
+				case 'a':
+					newHead.y -= 1;
+					break;
+				case 's':
+					newHead.x += 1;
+					break;
+				case 'd':
+					newHead.y += 1;
+					break;
+			}
+			snakeBody.push_back(newHead);
+			validPosition[newHead.x][newHead.y] = false;
 		}
 	}
+
 	char input()
 	{
 		clock_t start, end;
@@ -186,29 +162,101 @@ public:
 			if (timetaken >= 0)
 				break;
 		}
-		return 0;
+		return _key;
 	}
-	void printFrame()
+
+	void updateSnake()
 	{
-		for (std::string s : _frame)
+		Position head = snakeBody.back();
+		Position newHead = head;
+		switch (_key)
 		{
-			std::cout <<"\t\t\t\t" << s << std::endl;
+			case 'w':
+				newHead.x -= 1;
+				break;
+			case 'a':
+				newHead.y -= 1;
+				break;
+			case 's':
+				newHead.x += 1;
+				break;
+			case 'd':
+				newHead.y += 1;
+				break;
 		}
-		_frame = _lastframe;
+		snakeBody.push_back(newHead);
+		if (isAlive(newHead))
+		{
+			validPosition[newHead.x][newHead.y] = false;
+
+			Position tail = snakeBody.front();
+
+			frame[tail.x][tail.y] = ' ';
+			validPosition[tail.x][tail.y] = true;
+
+			snakeBody.pop_front();
+		}
 	}
-	~Game()
+
+	void gameLoop()
 	{
-		_frame = { "" };
-		_lastframe = { "" };
-		_bodypos = { 0 };
+
+		while (isSnakeAlive)
+		{
+			printSnake();
+			printFood();
+			printFrame();
+			input();
+			updateSnake();
+			Sleep(100);
+			system("cls");
+		}
+	}
+
+public:
+	Game()
+	{
+		validPosition = std::vector<std::vector<bool>>(HEIGHT, std::vector<bool>(WIDTH, true));
+		generateFood();
+		generateSnake();
+		frame = std::vector<std::string>(HEIGHT);
+		
+		std::string top, bot, mid;
+		for (int i = 0; i < WIDTH; i++)
+		{
+			if (i == 0 || i == WIDTH - 1)
+				mid.push_back((char)186);
+			else
+				mid.push_back(' ');
+			top.push_back((char)205);
+		}
+		bot = top;
+		top[0] = (char)201;
+		top[top.size() - 1] = (char)187;
+		bot[0] = (char)200;
+		bot[bot.size() - 1] = (char)188;
+
+		for (int i = 0; i < HEIGHT; i++)
+		{
+			if (i == 0)
+				frame[i] = top;
+			else if (i == HEIGHT - 1)
+				frame[i] = bot;
+			else
+				frame[i] = mid;
+		}
+		gameLoop();
+	}
+
+	int getScore()
+	{
+		return score;
 	}
 };
 
-
 int main()
 {
-	Game snake;
-	std::cout<<"\nSCORE  ::  "<<snake.gameLoop()<<std::endl;
-
+	Game game;
+	std::cout << "SCORE -- " << game.getScore() << std::endl;
 	return 0;
 }
